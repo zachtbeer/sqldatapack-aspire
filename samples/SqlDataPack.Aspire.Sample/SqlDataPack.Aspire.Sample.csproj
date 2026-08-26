@@ -8,6 +8,12 @@
     <IsAspireHost>true</IsAspireHost>
     <!-- The AppHost SDK warns on every build unless the (opt-in, CLI-dependent) bundle mode is on. Not relevant to this sample. -->
     <NoWarn>$(NoWarn);ASPIRE010</NoWarn>
+    <!--
+      No lock file here. The AppHost SDK adds Aspire.Dashboard.Sdk/Orchestration for whichever RID
+      the restoring machine happens to be, so a lock file written on Windows fails locked restore on
+      Linux CI and vice versa. The sample ships nothing; the library and tests stay locked.
+    -->
+    <RestorePackagesWithLockFile>false</RestorePackagesWithLockFile>
   </PropertyGroup>
 
   <ItemGroup>
