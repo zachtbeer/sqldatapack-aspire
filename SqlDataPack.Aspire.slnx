@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/tests/">
+    <Project Path="tests/SqlDataPack.Aspire.Hosting.IntegrationTests/SqlDataPack.Aspire.Hosting.IntegrationTests.csproj" />
+    <Project Path="tests/SqlDataPack.Aspire.Hosting.Tests/SqlDataPack.Aspire.Hosting.Tests.csproj" />
+  </Folder>
+  <Project Path="samples/SqlDataPack.Aspire.Sample/SqlDataPack.Aspire.Sample.csproj" />
+  <Project Path="src/SqlDataPack.Aspire.Hosting/SqlDataPack.Aspire.Hosting.csproj" />
+</Solution>
