@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Restore
+        run: dotnet restore SqlDataPack.Aspire.slnx --locked-mode
+
+      - name: Build
+        run: dotnet build SqlDataPack.Aspire.slnx --no-restore -c Release
+
+      - name: Unit tests
+        run: dotnet test tests/SqlDataPack.Aspire.Hosting.Tests/SqlDataPack.Aspire.Hosting.Tests.csproj --no-build -c Release
+
+      - name: Integration tests
+        run: dotnet test tests/SqlDataPack.Aspire.Hosting.IntegrationTests/SqlDataPack.Aspire.Hosting.IntegrationTests.csproj --no-build -c Release
+
+      # Packaging breaks quietly: a renamed README or a missing icon only shows up when
+      # release.yml runs, by which point a tag is already pushed. Pack here instead.
+      - name: Pack
+        run: dotnet pack src/SqlDataPack.Aspire.Hosting/SqlDataPack.Aspire.Hosting.csproj --no-build -c Release -o ./artifacts/ci-pack
+
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - run: dotnet tool restore
+      - run: build/cleanup.sh
+      - run: git diff --exit-code

@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <Sdk Name="Aspire.AppHost.Sdk" Version="13.5.3" />
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+    <IsAspireHost>true</IsAspireHost>
+    <!-- The AppHost SDK warns on every build unless the (opt-in, CLI-dependent) bundle mode is on. Not relevant to this sample. -->
+    <NoWarn>$(NoWarn);ASPIRE010</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Aspire.Hosting.AppHost" />
+    <PackageReference Include="Aspire.Hosting.SqlServer" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- This is a library, not an executable app resource, so it needs a plain compile-time reference. -->
+    <ProjectReference Include="../../src/SqlDataPack.Aspire.Hosting/SqlDataPack.Aspire.Hosting.csproj" IsAspireProjectResource="false" />
+  </ItemGroup>
+
+</Project>

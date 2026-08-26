@@ -1,0 +1,43 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <IsPackable>true</IsPackable>
+    <PackageId>SqlDataPack.Aspire.Hosting</PackageId>
+    <Authors>zachtbeer</Authors>
+    <Description>Local development Aspire integration that adds SqlDataPack import and database reset commands to an Aspire SQL Server database resource. Not for production use. SqlDataPack docs: https://zachtbeer.github.io/sqldatapack/</Description>
+    <PackageTags>aspire;sqlserver;sqldatapack;development</PackageTags>
+    <PackageProjectUrl>https://github.com/zachtbeer/sqldatapack-aspire</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/zachtbeer/sqldatapack-aspire</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageIcon>icon.png</PackageIcon>
+    <Copyright>Copyright (c) 2026 zachtbeer</Copyright>
+    <PackageReleaseNotes>https://github.com/zachtbeer/sqldatapack-aspire/releases</PackageReleaseNotes>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <!--
+    Reproducible build settings (Deterministic, ContinuousIntegrationBuild, PublishRepositoryUrl,
+    EmbedUntrackedSources, IncludeSymbols/snupkg) live in Directory.Build.props at the repository
+    root. SourceLink for GitHub comes with the SDK, so there is no package reference for it.
+  -->
+
+  <ItemGroup>
+    <PackageReference Include="Aspire.Hosting" />
+    <PackageReference Include="Aspire.Hosting.SqlServer" />
+    <PackageReference Include="SqlDataPack" />
+    <PackageReference Include="Microsoft.Data.SqlClient" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="../../README.md" Pack="true" PackagePath="\" />
+    <None Include="icon.png" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="SqlDataPack.Aspire.Hosting.Tests" />
+    <InternalsVisibleTo Include="SqlDataPack.Aspire.Hosting.IntegrationTests" />
+  </ItemGroup>
+
+</Project>
