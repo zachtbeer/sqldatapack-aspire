@@ -1,4 +1,5 @@
 using Microsoft.Data.SqlClient;
+using SqlDataPack.Models;
 using Microsoft.Extensions.Logging.Abstractions;
 using Shouldly;
 using Xunit;
@@ -36,7 +37,7 @@ public sealed class ImportTests(SqlServerFixture fixture) : IDisposable {
         var target = await fixture.CreateDatabaseAsync(targetName);
 
         await SqlDataPackImportOperation.ImportAsync(
-            new ImportRequest(pack, ImportSchema: true, Reset: false), target, NullLogger.Instance, CancellationToken.None);
+            new ImportRequest(pack, ImportSchema: true, Reset: false), target, DacpacDeploymentOptions.Default, NullLogger.Instance, CancellationToken.None);
 
         var rows = await fixture.ScalarAsync<int>(target, "SELECT COUNT(*) FROM dbo.Widgets;");
         rows.ShouldBe(2);
@@ -58,7 +59,7 @@ public sealed class ImportTests(SqlServerFixture fixture) : IDisposable {
         }
 
         await SqlDataPackImportOperation.ImportAsync(
-            new ImportRequest(pack, ImportSchema: false, Reset: false), target, NullLogger.Instance, CancellationToken.None);
+            new ImportRequest(pack, ImportSchema: false, Reset: false), target, DacpacDeploymentOptions.Default, NullLogger.Instance, CancellationToken.None);
 
         var rows = await fixture.ScalarAsync<int>(target, "SELECT COUNT(*) FROM dbo.Widgets;");
         rows.ShouldBe(2);
@@ -83,7 +84,7 @@ public sealed class ImportTests(SqlServerFixture fixture) : IDisposable {
         // Reset: true is inert here; ImportAsync never reads it. The explicit ResetAsync call above
         // is what actually resets the database for this test.
         await SqlDataPackImportOperation.ImportAsync(
-            new ImportRequest(pack, ImportSchema: true, Reset: true), target, NullLogger.Instance, CancellationToken.None);
+            new ImportRequest(pack, ImportSchema: true, Reset: true), target, DacpacDeploymentOptions.Default, NullLogger.Instance, CancellationToken.None);
 
         var stale = await fixture.ScalarAsync<int>(target,
             "SELECT COUNT(*) FROM sys.tables WHERE name = 'Stale';");

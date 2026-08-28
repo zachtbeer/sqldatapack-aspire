@@ -37,6 +37,24 @@ public sealed class SqlDataPackCommandsTests {
         public object? GetService(Type serviceType) => null;
     }
 
+    [Fact]
+    public void Describe_FlattensTheInnerExceptionChain() {
+        var exception = new InvalidOperationException(
+            "Failed to deploy dacpac schema.",
+            new Exception("Deployment plan generation failed.", new Exception("Target platform mismatch.")));
+
+        var message = SqlDataPackCommands.Describe(exception);
+
+        message.ShouldBe("Failed to deploy dacpac schema. Deployment plan generation failed. Target platform mismatch.");
+    }
+
+    [Fact]
+    public void Describe_DropsRepeatedMessagesFromWrapperExceptions() {
+        var exception = new InvalidOperationException("Same text.", new Exception("Same text."));
+
+        SqlDataPackCommands.Describe(exception).ShouldBe("Same text.");
+    }
+
     private static SqlServerDatabaseResource BuildResource() {
         var builder = DistributedApplication.CreateBuilder(new DistributedApplicationOptions { Args = [], DisableDashboard = true });
         return builder.AddSqlServer("sql").AddDatabase("catalog").Resource;

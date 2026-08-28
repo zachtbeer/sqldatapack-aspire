@@ -1,4 +1,5 @@
 using Aspire.Hosting.ApplicationModel;
+using SqlDataPack.Models;
 
 namespace SqlDataPack.Aspire.Hosting;
 
@@ -29,4 +30,32 @@ public sealed class SqlDataPackCommandOptions {
     /// Visibility controls discovery and display, not authorization.
     /// </summary>
     public ResourceCommandVisibility Visibility { get; set; } = ResourceCommandVisibility.UI | ResourceCommandVisibility.Api;
+
+    /// <summary>
+    /// Lets a schema import run when the pack's target platform does not match the target server,
+    /// for example an Azure SQL export going into a local SQL Server 2022 container. Defaults to
+    /// <see langword="true"/>, which is the opposite of the SqlDataPack library default.
+    /// </summary>
+    /// <remarks>
+    /// The usual local development case is a pack taken from somewhere else and dropped into a
+    /// container, where the platform stamp differs but nothing in the schema actually needs the
+    /// source platform. Set this to <see langword="false"/> to get DacFx's fail-fast behaviour back.
+    /// It does not rescue a schema that genuinely uses features the target server does not have;
+    /// that still fails, just later and with a message about the specific feature.
+    /// </remarks>
+    public bool AllowIncompatiblePlatform { get; set; } = true;
+
+    /// <summary>
+    /// Optional hook to set any other <see cref="DacpacDeploymentOptions"/> property before a
+    /// schema import. Runs after <see cref="AllowIncompatiblePlatform"/> is applied, so it can
+    /// override that too. Only used when the import includes schema.
+    /// </summary>
+    public Action<DacpacDeploymentOptions>? ConfigureSchemaDeployment { get; set; }
+
+    internal DacpacDeploymentOptions BuildSchemaDeploymentOptions() {
+        var deployment = DacpacDeploymentOptions.Default;
+        deployment.AllowIncompatiblePlatform = AllowIncompatiblePlatform;
+        ConfigureSchemaDeployment?.Invoke(deployment);
+        return deployment;
+    }
 }
