@@ -165,7 +165,7 @@ internal static class SqlDataPackCommands {
                 var phase = request.ImportSchema ? "Applying schema and importing data" : "Importing data";
 
                 SqlDataPackResult? result = null;
-                await progress.RunAsync(phase, async ct => result = await SqlDataPackImportOperation.ImportAsync(request, databaseConnectionString, context.Logger, ct), context.CancellationToken);
+                await progress.RunAsync(phase, async ct => result = await SqlDataPackImportOperation.ImportAsync(request, databaseConnectionString, options.BuildSchemaDeploymentOptions(), context.Logger, ct), context.CancellationToken);
 
                 return new ExecuteCommandResult { Success = true, Message = ImportSuccessMessage(result) };
             }
@@ -174,7 +174,7 @@ internal static class SqlDataPackCommands {
             }
             catch (Exception ex) {
                 context.Logger.LogError(ex, "Importing a SqlDataPack file into {Database} failed.", resource.DatabaseName);
-                return Failure(ex.Message);
+                return Failure(Describe(ex));
             }
         };
     }
@@ -200,7 +200,7 @@ internal static class SqlDataPackCommands {
             }
             catch (Exception ex) {
                 context.Logger.LogError(ex, "Resetting {Database} failed.", resource.DatabaseName);
-                return Failure(ex.Message);
+                return Failure(Describe(ex));
             }
         };
     }
@@ -225,6 +225,21 @@ internal static class SqlDataPackCommands {
     private static async Task<string> RequireConnectionStringAsync(IResourceWithConnectionString resource, CancellationToken cancellationToken) {
         var connectionString = await resource.GetConnectionStringAsync(cancellationToken);
         return connectionString ?? throw new InvalidOperationException($"Resource '{resource.Name}' has no connection string yet.");
+    }
+
+    // The dashboard shows Message and nothing else, and the top of a DacFx failure chain is
+    // usually "deployment plan generation failed" with the actual reason two levels down.
+    public static string Describe(Exception exception) {
+        var messages = new List<string>();
+
+        for (var current = exception; current is not null; current = current.InnerException) {
+            var message = current.Message?.Trim();
+            if (!string.IsNullOrEmpty(message) && !messages.Contains(message, StringComparer.Ordinal)) {
+                messages.Add(message);
+            }
+        }
+
+        return string.Join(" ", messages);
     }
 
     private static ExecuteCommandResult Failure(string message) {
