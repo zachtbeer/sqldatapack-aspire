@@ -1,5 +1,6 @@
 using Aspire.Hosting;
 using Aspire.Hosting.ApplicationModel;
+using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Logging.Abstractions;
 using Shouldly;
 using Xunit;
@@ -29,7 +30,7 @@ public sealed class SqlDataPackCommandsTests {
 
         public Task<PackInfo> InspectAsync(string path, CancellationToken cancellationToken) {
             Calls++;
-            return Task.FromResult(new PackInfo(ContainsDacpac: true));
+            return Task.FromResult(new PackInfo(ContainsDacpac: true, TestManifest.For(true, ("dbo", "Widgets", "t_dbo_Widgets"))));
         }
     }
 
@@ -171,6 +172,57 @@ public sealed class SqlDataPackCommandsTests {
         }
         finally {
             File.Delete(_existingPack);
+        }
+    }
+
+    // A real SQLite file, because the pre-import hook opens one. The other tests never get that far
+    // and an empty file is enough for them.
+    private string CreateSqlitePack() {
+        var path = Path.Combine(Path.GetTempPath(), $"pack-{Guid.NewGuid():N}.sqlite");
+
+        using var connection = new SqliteConnection(new SqliteConnectionStringBuilder { DataSource = path, Pooling = false }.ToString());
+        connection.Open();
+        using var command = connection.CreateCommand();
+        command.CommandText = "CREATE TABLE Widgets(Id integer primary key);";
+        command.ExecuteNonQuery();
+
+        return path;
+    }
+
+    // Reset is requested and confirmed here, so "Resetting database" is the phase that would run
+    // next. It must not appear: a failing hook has to leave the database alone.
+    [Fact]
+    public async Task ImportHandler_BeforeImportHookThrows_StopsAheadOfTheReset() {
+        var pack = CreateSqlitePack();
+        try {
+            var progress = new FakeProgressScope();
+            var ran = false;
+            var options = new SqlDataPackCommandOptions {
+                PackSource = SqlDataPackSource.Path,
+                BeforeImport = (_, _) => {
+                    ran = true;
+                    throw new InvalidOperationException("no such table: Customer");
+                }
+            };
+            var handler = SqlDataPackCommands.ImportHandler(BuildResource(), options, _ => progress, () => new FakeInspector());
+            var args = new InteractionInputCollection([
+                Text(CommandArguments.PackPath, pack),
+                Boolean(CommandArguments.ImportSchema, true),
+                Boolean(CommandArguments.Reset, true),
+                Boolean(CommandArguments.ConfirmDestroy, true)
+            ]);
+
+            var result = await handler(Context(args));
+
+            ran.ShouldBeTrue();
+            result.Success.ShouldBeFalse();
+            result.Message.ShouldNotBeNull();
+            result.Message!.ShouldContain("nothing was imported");
+            result.Message!.ShouldContain("no such table: Customer");
+            progress.Phases.ShouldBe(["Validating SqlDataPack", "Running pre-import changes"]);
+        }
+        finally {
+            File.Delete(pack);
         }
     }
 }

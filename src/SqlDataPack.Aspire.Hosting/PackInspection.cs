@@ -3,7 +3,7 @@ using SqlDataPack.Models;
 namespace SqlDataPack.Aspire.Hosting;
 
 /// <summary>What the commands need to know about a pack before touching a database.</summary>
-internal sealed record PackInfo(bool ContainsDacpac);
+internal sealed record PackInfo(bool ContainsDacpac, SqlDataPackManifest Manifest);
 
 /// <summary>Thrown when a path is not a SqlDataPack file we can read.</summary>
 internal sealed class PackUnreadableException : Exception {
@@ -26,7 +26,7 @@ internal sealed class SqlDataPackInspector : IPackInspector {
 
         try {
             var manifest = await new SqlDataPackReader().ReadManifestAsync(path, cancellationToken);
-            return new PackInfo(manifest.ContainsDacpac);
+            return new PackInfo(manifest.ContainsDacpac, manifest);
         }
         catch (OperationCanceledException) {
             throw;

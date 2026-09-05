@@ -42,6 +42,38 @@ The commands only show up in run mode. In publish mode `WithSqlDataPack` does no
 
 Combining `PackSource.Upload` with `Api` visibility throws at startup. An API client has no way to hand us an uploaded file, so there would be nothing for it to call.
 
+### Changing the data on the way in
+
+Two optional hooks rewrite data as part of the import. `BeforeImport` runs against the pack file, `AfterImport` runs against the target database once the import has succeeded.
+
+```csharp
+.WithSqlDataPack(o => {
+    // SQLite, against the pack file. Runs before the database is touched at all.
+    o.BeforeImport = async (ctx, ct) => {
+        var customer = ctx.SqliteTableFor("dbo", "Customer");
+
+        await using var cmd = ctx.Connection.CreateCommand();
+        cmd.CommandText = $"UPDATE \"{customer}\" SET Email = 'dev@example.test', Phone = NULL;";
+        await cmd.ExecuteNonQueryAsync(ct);
+    };
+
+    // SQL Server, against the target database. Only runs if the import succeeded.
+    o.AfterImport = async (ctx, ct) => {
+        ctx.Logger.LogInformation("Imported {Rows:N0} rows into {Db}.", ctx.Result.RowCount, ctx.DatabaseName);
+
+        await using var cmd = ctx.Connection.CreateCommand();
+        cmd.CommandText = "INSERT INTO dbo.FeatureFlag(Name, Enabled) VALUES ('NewCheckout', 1);";
+        await cmd.ExecuteNonQueryAsync(ct);
+    };
+});
+```
+
+A pack does not name its tables after the SQL Server ones, so `ctx.SqliteTableFor("dbo", "Customer")` gives you the name to put in the SQL. `ctx.Manifest` has the rest of it: tables, columns, what the export left out, warnings.
+
+Both connections are opened and closed for you, and each hook you register shows up as its own step in the dashboard's progress. `BeforeImport` runs ahead of the reset, so a hook that throws leaves the target database exactly as you left it.
+
+If a `BeforeImport` hook deletes or inserts rows, the pack stops matching the row counts recorded at export. The import still goes ahead and logs a per-table drift warning.
+
 ### Packs from a different SQL Server
 
 You usually export from one server and import into another. Azure SQL out, local SQL Server 2022 container in. DacFx normally refuses to do that. You may see messages like this:
@@ -56,6 +88,7 @@ In SqlDataPack.Aspire.Hosting, we've defaulted `AllowIncompatiblePlatform` to tr
 
 - The upload field is capped by Aspire's server-side upload limit, 100 MB by default. Use the path field for anything larger. We can't raise that limit from here.
 - The path field reads any file the AppHost process can read. That's the point on your own machine. Think twice if the AppHost is reachable by anything else.
+- `BeforeImport` edits the pack file in place. If you used the path field, that's your own `dev-slice.sqlite` being rewritten. Write hooks that survive a second run: `SET Email = 'dev@example.test'` is fine, `SET Email = Email || '.test'` grows a longer suffix every import.
 - Reset does not re-run a `WithCreationScript` configured on the database. You get a plain empty database back.
 - V1 does not merge or remove existing data. Import into a blank database, or use reset.
 - If the reset batch fails partway through, the database can be left in `SINGLE_USER` mode. Re-running `Reset Database` recovers it.

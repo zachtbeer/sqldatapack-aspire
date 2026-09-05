@@ -28,6 +28,7 @@
     <PackageReference Include="Aspire.Hosting.SqlServer" />
     <PackageReference Include="SqlDataPack" />
     <PackageReference Include="Microsoft.Data.SqlClient" />
+    <PackageReference Include="Microsoft.Data.Sqlite" />
   </ItemGroup>
 
   <ItemGroup>

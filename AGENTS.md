@@ -14,6 +14,12 @@ behaviour; it records API facts that are easy to get wrong.
   a pure function over two values rather than a lambda over a snapshot.
 - Only `PromptProgressAsync` and friends are experimental. `ASPIREINTERACTION001` belongs in
   `AspireProgressScope.cs` and nowhere else.
+- `Microsoft.Data.Sqlite` pools connections and a pooled connection keeps the file handle. The
+  pre-import hook opens the pack right before the importer does, so its connection string sets
+  `Pooling = false`. Drop that and the importer trips over a file the hook has already released.
+- Calling `GetConnectionStringAsync` on a resource from `DistributedApplication.CreateBuilder` that
+  was never started crashes the test host. That is why every unit test of the handlers asserts on a
+  path that returns before the connection string is resolved.
 
 ## Commands
 

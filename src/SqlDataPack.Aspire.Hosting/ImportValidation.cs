@@ -1,4 +1,5 @@
 using Aspire.Hosting;
+using SqlDataPack.Models;
 
 namespace SqlDataPack.Aspire.Hosting;
 
@@ -6,7 +7,7 @@ internal sealed record ValidationFailure(string InputName, string Message);
 
 internal sealed record ImportRequest(string PackPath, bool ImportSchema, bool Reset);
 
-internal sealed record ImportValidationResult(ImportRequest? Request, IReadOnlyList<ValidationFailure> Failures);
+internal sealed record ImportValidationResult(ImportRequest? Request, SqlDataPackManifest? Manifest, IReadOnlyList<ValidationFailure> Failures);
 
 /// <summary>
 /// Every rule from the design's validation table. Runs before the command body, so nothing
@@ -60,6 +61,8 @@ internal static class ImportValidation {
             failures.Add(new ValidationFailure(CommandArguments.ConfirmDestroy, "Confirm that the database may be dropped and recreated before importing."));
         }
 
+        SqlDataPackManifest? manifest = null;
+
         if (packPath is not null) {
             PackInfo? info = null;
             try {
@@ -69,12 +72,16 @@ internal static class ImportValidation {
                 failures.Add(new ValidationFailure(packInput, ex.Message));
             }
 
+            manifest = info?.Manifest;
+
             if (info is not null && importSchema && !info.ContainsDacpac) {
                 failures.Add(new ValidationFailure(CommandArguments.ImportSchema, "This pack carries no schema. Export it with SchemaCaptureMode.Dacpac, or turn off Import schema to import data only."));
             }
         }
 
-        return failures.Count > 0 ? new ImportValidationResult(null, failures) : new ImportValidationResult(new ImportRequest(packPath!, importSchema, reset), failures);
+        return failures.Count > 0
+            ? new ImportValidationResult(null, null, failures)
+            : new ImportValidationResult(new ImportRequest(packPath!, importSchema, reset), manifest, failures);
     }
 
     public static IReadOnlyList<ValidationFailure> ValidateReset(InteractionInputCollection arguments, string databaseName) {

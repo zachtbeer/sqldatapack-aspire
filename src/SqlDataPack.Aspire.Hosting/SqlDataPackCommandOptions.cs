@@ -52,6 +52,25 @@ public sealed class SqlDataPackCommandOptions {
     /// </summary>
     public Action<DacpacDeploymentOptions>? ConfigureSchemaDeployment { get; set; }
 
+    /// <summary>
+    /// Optional hook to change the data in the pack before any of it reaches SQL Server. Runs
+    /// after the arguments validate and before the database is reset, so a failure here leaves the
+    /// target database untouched.
+    /// </summary>
+    /// <remarks>
+    /// The connection is open on the pack file itself, so the hook rewrites that file on disk. If
+    /// the pack came from the path field, that is the developer's own file. Write hooks that
+    /// survive being run twice: <c>SET Email = 'dev@example.test'</c> is fine,
+    /// <c>SET Email = Email || '.test'</c> grows a longer suffix on every import.
+    /// </remarks>
+    public Func<SqlDataPackBeforeImportContext, CancellationToken, Task>? BeforeImport { get; set; }
+
+    /// <summary>
+    /// Optional hook to change the data in the target database once the import has succeeded.
+    /// Does not run when the import fails.
+    /// </summary>
+    public Func<SqlDataPackAfterImportContext, CancellationToken, Task>? AfterImport { get; set; }
+
     internal DacpacDeploymentOptions BuildSchemaDeploymentOptions() {
         var deployment = DacpacDeploymentOptions.Default;
         deployment.AllowIncompatiblePlatform = AllowIncompatiblePlatform;

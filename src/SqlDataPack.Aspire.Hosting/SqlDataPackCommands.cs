@@ -157,6 +157,12 @@ internal static class SqlDataPackCommands {
 
                 await progress.RunAsync("Validating SqlDataPack", _ => Task.CompletedTask, context.CancellationToken);
 
+                // Ahead of the reset on purpose: a hook that throws should not leave the developer
+                // with a database that has already been dropped.
+                if (options.BeforeImport is not null) {
+                    await progress.RunAsync("Running pre-import changes", ct => ImportHooks.RunBeforeAsync(options.BeforeImport, request, validation.Manifest!, context.Logger, ct), context.CancellationToken);
+                }
+
                 if (request.Reset) {
                     await RunResetAsync(resource, progress, context.CancellationToken);
                 }
@@ -166,6 +172,10 @@ internal static class SqlDataPackCommands {
 
                 SqlDataPackResult? result = null;
                 await progress.RunAsync(phase, async ct => result = await SqlDataPackImportOperation.ImportAsync(request, databaseConnectionString, options.BuildSchemaDeploymentOptions(), context.Logger, ct), context.CancellationToken);
+
+                if (options.AfterImport is not null && result is not null) {
+                    await progress.RunAsync("Running post-import changes", ct => ImportHooks.RunAfterAsync(options.AfterImport, databaseConnectionString, resource.DatabaseName, result, context.Logger, ct), context.CancellationToken);
+                }
 
                 return new ExecuteCommandResult { Success = true, Message = ImportSuccessMessage(result) };
             }
