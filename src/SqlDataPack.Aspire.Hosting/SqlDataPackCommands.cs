@@ -173,7 +173,19 @@ internal static class SqlDataPackCommands {
                 var result = await progress.RunAsync(phase, ct => SqlDataPackImportOperation.ImportAsync(request, databaseConnectionString, options.BuildSchemaDeploymentOptions(), context.Logger, ct), context.CancellationToken);
 
                 if (options.AfterImport is not null) {
-                    await progress.RunAsync("Running post-import changes", ct => ImportHooks.RunAfterAsync(options.AfterImport, databaseConnectionString, resource.DatabaseName, result, context.Logger, ct), context.CancellationToken);
+                    try {
+                        await progress.RunAsync("Running post-import changes", ct => ImportHooks.RunAfterAsync(options.AfterImport, databaseConnectionString, resource.DatabaseName, result, context.Logger, ct), context.CancellationToken);
+                    }
+                    catch (OperationCanceledException) {
+                        // The rows are already committed. A bare "canceled" sends the developer into
+                        // a second import, which V1 cannot merge into a database that is no longer
+                        // empty.
+                        return new ExecuteCommandResult {
+                            Success = false,
+                            Canceled = true,
+                            Message = $"The post-import changes were canceled. The import itself finished and \"{resource.DatabaseName}\" holds the imported data."
+                        };
+                    }
                 }
 
                 return new ExecuteCommandResult { Success = true, Message = ImportSuccessMessage(result) };
