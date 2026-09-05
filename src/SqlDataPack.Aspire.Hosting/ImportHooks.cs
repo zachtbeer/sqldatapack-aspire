@@ -123,8 +123,17 @@ internal static class ImportHooks {
 
         try {
             await connection.OpenAsync(cancellationToken);
+        }
+        catch (OperationCanceledException) {
+            throw;
+        }
+        catch (Exception ex) {
+            throw new InvalidOperationException($"The data imported successfully into \"{databaseName}\", but the connection the AfterImport hook needed could not be opened, so the hook did not run and changed nothing.", ex);
+        }
 
-            var context = new SqlDataPackAfterImportContext(connection, databaseName, result, logger);
+        var context = new SqlDataPackAfterImportContext(connection, databaseName, result, logger);
+
+        try {
             await hook(context, cancellationToken);
         }
         catch (OperationCanceledException) {

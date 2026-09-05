@@ -101,4 +101,27 @@ public sealed class ImportHookTests(SqlServerFixture fixture) : IDisposable {
         message.ShouldContain("AfterImport");
         message.ShouldContain("Invalid object name 'dbo.Widgits'.");
     }
+
+    // Connecting to a database that does not exist fails at open, which is the shape of a container
+    // that went away between the import finishing and the hook connection opening.
+    [Fact]
+    public async Task AfterImport_ConnectionCannotBeOpened_SaysTheHookDidNotRun() {
+        var target = await fixture.CreateDatabaseAsync($"tgt_{Guid.NewGuid():N}");
+        var missing = new SqlConnectionStringBuilder(target) { InitialCatalog = "no_such_database" }.ConnectionString;
+        var ran = false;
+
+        var exception = await Should.ThrowAsync<InvalidOperationException>(() => ImportHooks.RunAfterAsync(
+            (_, _) => {
+                ran = true;
+                return Task.CompletedTask;
+            },
+            missing, "no_such_database", new SqlDataPackResult(0, 0, []), NullLogger.Instance, CancellationToken.None));
+
+        ran.ShouldBeFalse();
+
+        var message = SqlDataPackCommands.Describe(exception);
+        message.ShouldContain("imported successfully");
+        message.ShouldContain("did not run");
+        message.ShouldNotContain("whatever the hook managed to change");
+    }
 }
