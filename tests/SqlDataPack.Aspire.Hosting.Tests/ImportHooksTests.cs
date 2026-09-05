@@ -48,6 +48,9 @@ public sealed class ImportHooksTests : IDisposable {
 
     private static readonly SqlDataPackManifest Manifest = TestManifest.For(true, ("dbo", "Widgets", "t_dbo_Widgets"));
 
+    private static readonly SqlDataPackManifest CaseSensitiveManifest =
+        TestManifest.For(true, ("dbo", "Customer", "t_dbo_Customer"), ("dbo", "customer", "t_dbo_customer"));
+
     [Fact]
     public async Task RunBeforeAsync_HookWritesToThePack_ChangesSurvive() {
         var pack = CreatePack("writes");
@@ -148,5 +151,33 @@ public sealed class ImportHooksTests : IDisposable {
 
         await Should.ThrowAsync<OperationCanceledException>(() => ImportHooks.RunBeforeAsync(
             (_, ct) => Task.FromCanceled(ct), RequestFor(pack), Manifest, NullLogger.Instance, source.Token));
+    }
+
+    // A case-sensitive source collation can carry both of these. The exact spelling picks one.
+    [Fact]
+    public async Task SqliteTableFor_TwoTablesDifferingOnlyByCase_TakesTheExactSpelling() {
+        var pack = CreatePack("case-exact");
+
+        await ImportHooks.RunBeforeAsync((context, _) => {
+            context.SqliteTableFor("dbo", "Customer").ShouldBe("t_dbo_Customer");
+            context.SqliteTableFor("dbo", "customer").ShouldBe("t_dbo_customer");
+            return Task.CompletedTask;
+        }, RequestFor(pack), CaseSensitiveManifest, NullLogger.Instance, CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task SqliteTableFor_TwoTablesDifferingOnlyByCaseAndNeitherSpelledThatWay_Throws() {
+        var pack = CreatePack("case-ambiguous");
+
+        var exception = await Should.ThrowAsync<InvalidOperationException>(() => ImportHooks.RunBeforeAsync(
+            (context, _) => {
+                context.SqliteTableFor("dbo", "CUSTOMER");
+                return Task.CompletedTask;
+            }, RequestFor(pack), CaseSensitiveManifest, NullLogger.Instance, CancellationToken.None));
+
+        var message = SqlDataPackCommands.Describe(exception);
+        message.ShouldContain("more than one table named dbo.CUSTOMER");
+        message.ShouldContain("dbo.Customer");
+        message.ShouldContain("dbo.customer");
     }
 }

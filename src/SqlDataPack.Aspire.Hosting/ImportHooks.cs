@@ -43,15 +43,34 @@ public sealed class SqlDataPackBeforeImportContext {
     /// <param name="schema">Source schema name, for example <c>dbo</c>.</param>
     /// <param name="table">Source table name.</param>
     /// <returns>The table name to use in SQL against <see cref="Connection"/>.</returns>
-    /// <exception cref="InvalidOperationException">The pack does not carry that table.</exception>
+    /// <exception cref="InvalidOperationException">
+    /// The pack does not carry that table, or it carries more than one that differs only by case
+    /// and none of them is spelled the way you asked.
+    /// </exception>
     public string SqliteTableFor(string schema, string table) {
-        var match = Manifest.Tables.FirstOrDefault(t =>
-            string.Equals(t.SourceSchema, schema, StringComparison.OrdinalIgnoreCase)
-            && string.Equals(t.SourceTable, table, StringComparison.OrdinalIgnoreCase));
+        var candidates = Manifest.Tables
+            .Where(t => NameMatches(t, schema, table, StringComparison.OrdinalIgnoreCase))
+            .ToList();
 
-        return match?.SqliteTable
-               ?? throw new InvalidOperationException($"The pack does not carry the table {schema}.{table}. It carries: {string.Join(", ", Manifest.Tables.Select(t => t.FullName))}.");
+        if (candidates.Count == 0) {
+            throw new InvalidOperationException($"The pack does not carry the table {schema}.{table}. It carries: {string.Join(", ", Manifest.Tables.Select(t => t.FullName))}.");
+        }
+
+        if (candidates.Count == 1) {
+            return candidates[0].SqliteTable;
+        }
+
+        // A case-sensitive source collation can carry dbo.Customer and dbo.customer at once. Only
+        // the exact spelling says which one the hook meant.
+        var exact = candidates.Where(t => NameMatches(t, schema, table, StringComparison.Ordinal)).ToList();
+
+        return exact.Count == 1
+            ? exact[0].SqliteTable
+            : throw new InvalidOperationException($"The pack carries more than one table named {schema}.{table} apart from case: {string.Join(", ", candidates.Select(t => t.FullName))}. The source collation is case sensitive, so ask for one of those spellings exactly.");
     }
+
+    private static bool NameMatches(SqlDataPackTableManifest table, string schema, string tableName, StringComparison comparison) =>
+        string.Equals(table.SourceSchema, schema, comparison) && string.Equals(table.SourceTable, tableName, comparison);
 }
 
 /// <summary>
