@@ -14,6 +14,14 @@ public sealed class SqlDataPackCommandOptionsTests {
         options.Visibility.ShouldBe(ResourceCommandVisibility.UI | ResourceCommandVisibility.Api);
     }
 
+    [Fact]
+    public void Defaults_RegisterNeitherImportHook() {
+        var options = new SqlDataPackCommandOptions();
+
+        options.BeforeImport.ShouldBeNull();
+        options.AfterImport.ShouldBeNull();
+    }
+
     // The SqlDataPack library defaults this to false. Local development targets rarely match the
     // platform a pack was exported from, so the integration flips it.
     [Fact]

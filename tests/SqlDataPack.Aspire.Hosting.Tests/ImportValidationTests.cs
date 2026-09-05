@@ -26,8 +26,8 @@ public sealed class ImportValidationTests : IDisposable {
             _throws = throws;
         }
 
-        public static FakeInspector WithDacpac() => new(new PackInfo(ContainsDacpac: true), null);
-        public static FakeInspector WithoutDacpac() => new(new PackInfo(ContainsDacpac: false), null);
+        public static FakeInspector WithDacpac() => new(new PackInfo(ContainsDacpac: true, TestManifest.For(true)), null);
+        public static FakeInspector WithoutDacpac() => new(new PackInfo(ContainsDacpac: false, TestManifest.For(false)), null);
         public static FakeInspector Unreadable() => new(null, new PackUnreadableException("not a readable SqlDataPack file"));
 
         public int Calls { get; private set; }

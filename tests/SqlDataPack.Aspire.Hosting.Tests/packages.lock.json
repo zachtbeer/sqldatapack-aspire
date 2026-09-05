@@ -322,16 +322,6 @@
         "resolved": "6.0.2",
         "contentHash": "f+pRODTWX7Y67jXO3T5S2dIPZ9qMJNySjlZT/TKmWVNWe19N8jcWmHaqHnnchaq3gxEKv1SWVY5EFzOD06l41w=="
       },
-      "Microsoft.Data.Sqlite": {
-        "type": "Transitive",
-        "resolved": "10.0.11",
-        "contentHash": "7je7UELzm131GiLYc4PpZvfKXIgIyzPM+v+tjcd/nbnuWRfgcONYKzDTqJlURxwVCFsVnlpmq6y6yn4qvR8QXQ==",
-        "dependencies": {
-          "Microsoft.Data.Sqlite.Core": "10.0.11",
-          "SQLitePCLRaw.bundle_e_sqlite3": "2.1.12",
-          "SQLitePCLRaw.core": "2.1.12"
-        }
-      },
       "Microsoft.Data.Sqlite.Core": {
         "type": "Transitive",
         "resolved": "10.0.11",
@@ -1068,7 +1058,8 @@
           "Aspire.Hosting": "[13.5.3, )",
           "Aspire.Hosting.SqlServer": "[13.5.3, )",
           "Microsoft.Data.SqlClient": "[7.0.2, )",
-          "SqlDataPack": "[1.1.0, )"
+          "Microsoft.Data.Sqlite": "[10.0.11, )",
+          "SqlDataPack": "[1.2.2, )"
         }
       },
       "Aspire.Hosting": {
@@ -1126,11 +1117,22 @@
           "System.Security.Cryptography.Pkcs": "9.0.13"
         }
       },
+      "Microsoft.Data.Sqlite": {
+        "type": "CentralTransitive",
+        "requested": "[10.0.11, )",
+        "resolved": "10.0.11",
+        "contentHash": "7je7UELzm131GiLYc4PpZvfKXIgIyzPM+v+tjcd/nbnuWRfgcONYKzDTqJlURxwVCFsVnlpmq6y6yn4qvR8QXQ==",
+        "dependencies": {
+          "Microsoft.Data.Sqlite.Core": "10.0.11",
+          "SQLitePCLRaw.bundle_e_sqlite3": "2.1.12",
+          "SQLitePCLRaw.core": "2.1.12"
+        }
+      },
       "SqlDataPack": {
         "type": "CentralTransitive",
-        "requested": "[1.1.0, )",
-        "resolved": "1.1.0",
-        "contentHash": "UgeZaIFLlOY1b/INw+foyT5p3zzdDvm63itCP6Pd1vp+fjJGJTHyxUmrA8vDqtLkA+nkmy7TgdWNzvLkAqi0vg==",
+        "requested": "[1.2.2, )",
+        "resolved": "1.2.2",
+        "contentHash": "XOmOACS7Nw1rOvWKMGa2ZMgoCmuY/zF39BMusQO8rlmOOP8ID1ASYz96iudPWga4TOtzwMYBdXcBRHR9X0Bdig==",
         "dependencies": {
           "Microsoft.Data.SqlClient": "7.0.2",
           "Microsoft.Data.Sqlite": "10.0.11",

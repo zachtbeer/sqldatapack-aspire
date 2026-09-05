@@ -7,3 +7,4 @@ TestResults/
 
 # Scratch workspace for plan execution, not part of the project
 .superpowers/
+/docs/superpowers
