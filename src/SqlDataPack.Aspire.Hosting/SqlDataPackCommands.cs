@@ -170,10 +170,9 @@ internal static class SqlDataPackCommands {
                 var databaseConnectionString = await RequireConnectionStringAsync(resource, context.CancellationToken);
                 var phase = request.ImportSchema ? "Applying schema and importing data" : "Importing data";
 
-                SqlDataPackResult? result = null;
-                await progress.RunAsync(phase, async ct => result = await SqlDataPackImportOperation.ImportAsync(request, databaseConnectionString, options.BuildSchemaDeploymentOptions(), context.Logger, ct), context.CancellationToken);
+                var result = await progress.RunAsync(phase, ct => SqlDataPackImportOperation.ImportAsync(request, databaseConnectionString, options.BuildSchemaDeploymentOptions(), context.Logger, ct), context.CancellationToken);
 
-                if (options.AfterImport is not null && result is not null) {
+                if (options.AfterImport is not null) {
                     await progress.RunAsync("Running post-import changes", ct => ImportHooks.RunAfterAsync(options.AfterImport, databaseConnectionString, resource.DatabaseName, result, context.Logger, ct), context.CancellationToken);
                 }
 
@@ -216,8 +215,8 @@ internal static class SqlDataPackCommands {
     }
 
     // Warnings already reach the Console tab through the logger, so they are not repeated here.
-    private static string ImportSuccessMessage(SqlDataPackResult? result) {
-        return result is null ? "SqlDataPack imported successfully." : $"SqlDataPack imported successfully. {result.TableCount} tables, {result.RowCount:N0} rows.";
+    private static string ImportSuccessMessage(SqlDataPackResult result) {
+        return $"SqlDataPack imported successfully. {result.TableCount} tables, {result.RowCount:N0} rows.";
     }
 
     private static IProgressScope CreateProgress(ExecuteCommandContext context) {
